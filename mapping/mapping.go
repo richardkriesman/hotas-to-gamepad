@@ -7,22 +7,7 @@ import (
 
 type Table map[device.PersistentID]map[evdev.EvType]map[evdev.EvCode]TableRecord
 
-type TableRecord struct {
-	Type evdev.EvType
-	Code evdev.EvCode
-	Mode ModeFunction
-}
-
-type ModeFunction func(inputValue int32, inputInfo ControlInfo, outputInfo ControlInfo) int32
-
-type ControlInfo struct {
-	Type    evdev.EvType
-	Code    evdev.EvCode
-	Maximum int32
-	Minimum int32
-}
-
-func (t Table) Remap(event *device.Event) (*evdev.InputEvent, bool) {
+func (t Table) Remap(event *device.InputEvent, outputConfig device.Config) (*evdev.InputEvent, bool) {
 	// get remapping data
 	record, ok := t[event.Device.PersistentID()][event.Type][event.Code]
 	if !ok {
@@ -33,7 +18,7 @@ func (t Table) Remap(event *device.Event) (*evdev.InputEvent, bool) {
 	inputInfo := ControlInfo{
 		Type:    event.Type,
 		Code:    event.Code,
-		Maximum: 1,
+		Maximum: 1, // default value for buttons
 		Minimum: 0,
 	}
 	if event.Type == evdev.EV_ABS {
@@ -45,11 +30,12 @@ func (t Table) Remap(event *device.Event) (*evdev.InputEvent, bool) {
 	outputInfo := ControlInfo{
 		Type:    event.Type,
 		Code:    event.Code,
-		Maximum: 1,
+		Maximum: 1, // default for buttons
 		Minimum: 0,
 	}
 	if event.Type == evdev.EV_ABS {
-		outputInfo.Maximum = 65535
+		outputInfo.Minimum = outputConfig.Axes[record.Code].Minimum
+		outputInfo.Maximum = outputConfig.Axes[record.Code].Maximum
 	}
 
 	// construct a new input event with the remapped value

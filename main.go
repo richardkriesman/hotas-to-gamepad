@@ -29,18 +29,19 @@ func main() {
 				evdev.ABS_X: {
 					Type: evdev.EV_ABS,
 					Code: evdev.ABS_X,
-					Mode: mapping.ModeShiftFromPositive,
+					Mode: mapping.ModeExact,
 				},
 				evdev.ABS_Y: {
 					Type: evdev.EV_ABS,
 					Code: evdev.ABS_Y,
-					Mode: mapping.ModeShiftFromPositive,
+					Mode: mapping.ModeExact,
 				},
 			},
 			evdev.EV_KEY: {
-				evdev.BTN_TRIGGER: {
-					Type: evdev.EV_ABS,
-					Code: evdev.ABS_HAT2X,
+				// pinkie button
+				evdev.BTN_THUMB2: {
+					Type: evdev.EV_KEY,
+					Code: evdev.BTN_SELECT,
 					Mode: mapping.ModeExact,
 				},
 			},
@@ -50,26 +51,39 @@ func main() {
 			evdev.EV_ABS: {
 				evdev.ABS_Y: {
 					Type: evdev.EV_ABS,
-					Code: evdev.ABS_HAT2X,
+					Code: evdev.ABS_RZ,
+					Mode: mapping.ModeExact,
+				},
+			},
+			evdev.EV_KEY: {
+				// left reverser gate
+				evdev.BTN_BASE3: {
+					Type: evdev.EV_KEY,
+					Code: evdev.BTN_TL,
+					Mode: mapping.ModeExact,
+				},
+				evdev.BTN_TRIGGER_HAPPY1: {
+					Type: evdev.EV_KEY,
+					Code: evdev.BTN_TR,
 					Mode: mapping.ModeExact,
 				},
 			},
 		},
 		//  rudder
-		//input.PersistentID("67ef78796bec77c6c2766f172a9d2ddab8bcdd87cef49759ed94e62bb8bb15e7"): {
-		//	evdev.EV_ABS: {
-		//		evdev.ABS_Y: {
-		//			Type: evdev.EV_ABS,
-		//			Code: evdev.ABS_HAT2X,
-		//			Mode: mapping.ModeExact,
-		//		},
-		//		evdev.ABS_X: {
-		//			Type: evdev.EV_ABS,
-		//			Code: evdev.ABS_HAT2Y,
-		//			Mode: mapping.ModeExact,
-		//		},
-		//	},
-		//},
+		device.PersistentID("67ef78796bec77c6c2766f172a9d2ddab8bcdd87cef49759ed94e62bb8bb15e7"): {
+			evdev.EV_ABS: {
+				evdev.ABS_Y: {
+					Type: evdev.EV_ABS,
+					Code: evdev.ABS_RZ,
+					Mode: mapping.ModeExact,
+				},
+				evdev.ABS_X: {
+					Type: evdev.EV_ABS,
+					Code: evdev.ABS_Z,
+					Mode: mapping.ModeExact,
+				},
+			},
+		},
 		// xbox controller
 		device.PersistentID("4f2e1f9dd2d2b28d27363e6a748593a30c6650afdf8b5e0e7d762ebe9bb46a41"): {
 			evdev.EV_ABS: {
@@ -95,19 +109,17 @@ func main() {
 				},
 				evdev.ABS_Z: {
 					Type: evdev.EV_ABS,
-					//Code: evdev.ABS_HAT2X,
 					Code: evdev.ABS_Z,
 					Mode: mapping.ModeExact,
 				},
 				evdev.ABS_RZ: {
 					Type: evdev.EV_ABS,
-					//Code: evdev.ABS_HAT2Y,
 					Code: evdev.ABS_RZ,
 					Mode: mapping.ModeExact,
 				},
 				evdev.ABS_HAT0X: {
-					Type: evdev.EV_KEY,
-					Code: evdev.BTN_DPAD_UP,
+					Type: evdev.EV_ABS,
+					Code: evdev.ABS_HAT0X,
 					Mode: mapping.ModeExact,
 				},
 				evdev.ABS_HAT0Y: {
@@ -196,7 +208,7 @@ func main() {
 
 	// find and open configured inputs by unique id
 	var inputs []*device.Device
-	events := make(chan device.Event)
+	events := make(chan device.InputEvent)
 	errors := make(chan error)
 	deviceMetas, err := device.List()
 	if err != nil {
@@ -205,20 +217,21 @@ func main() {
 	for _, deviceMeta := range deviceMetas {
 		fmt.Printf("Found device %s (ID %s, Path %s)\n", deviceMeta.Name, deviceMeta.PersistentID, deviceMeta.Path)
 		if slices.Contains(deviceIds, deviceMeta.PersistentID) {
-			device, err := deviceMeta.Open()
+			dev, err := deviceMeta.Open()
 			if err != nil {
 				panic(err)
 			}
-			channels := device.Listen()
+			channels := dev.Listen()
 			channels.Events = events
 			channels.Errors = errors
-			inputs = append(inputs, device)
-			printDeviceInfo(device)
+			inputs = append(inputs, dev)
+			printDeviceInfo(dev)
 		}
 	}
 
 	// create virtual output
-	output, err := device.Create()
+	deviceConfig := device.Gamepad
+	output, err := device.Create(deviceConfig)
 	if err != nil {
 		panic(err)
 	}
@@ -241,56 +254,61 @@ func main() {
 		case err = <-errors:
 			panic(err)
 		// handle normal input events
-		case ev := <-events:
+		case event := <-events:
 			shouldLog :=
-			// if EV_ABS, has enough time passed since the last event?
-				(ev.Type != evdev.EV_ABS || time.Now().Sub(axisLogTimes[ev.Device.PersistentID()][ev.Code]).Milliseconds() >= 200) &&
+				// if EV_ABS, has enough time passed since the last event?
+				(event.Type != evdev.EV_ABS || time.Now().Sub(axisLogTimes[event.Device.PersistentID()][event.Code]).Milliseconds() >= 200) &&
 					// show sync events if the flag is set
-					(ev.Type != evdev.EV_SYN || *isDebugShowSyncEvents)
-			typeVal := fmt.Sprintf("%d (%s)", ev.Type, ev.TypeName())
-			codeVal := fmt.Sprintf("%d (%s)", ev.Code, ev.CodeName())
+					(event.Type != evdev.EV_SYN || *isDebugShowSyncEvents)
+			typeVal := fmt.Sprintf("%d (%s)", event.Type, event.TypeName())
+			codeVal := fmt.Sprintf("[%s (%d)]", event.CodeName(), event.Code)
 			if shouldLog {
 				log.Debug(
-					"Type: %10s\tSeq: %1d\tTime: %10d.%-6d\tCode: %-30s\tValue in: %5d",
-					typeVal, ev.Sequence, ev.Time.Sec, ev.Time.Usec, codeVal, ev.Value,
+					"Type: %10s\tSeq: %1d\tTime: %10d.%-6d\t %30s %6d ===> ",
+					typeVal, event.Sequence, event.Time.Sec, event.Time.Usec, codeVal, event.Value,
 				)
 			}
 
 			// remap the event and send it to the virtual output
-			if ev.Type == evdev.EV_SYN {
-				err := output.Send(&ev.InputEvent)
+			if event.Type == evdev.EV_SYN {
+				// forward sync without modification
+				err := output.Send(&event.InputEvent)
 				if err != nil {
 					panic(err)
 				}
 			} else {
-				remappedEvent, ok := keymap.Remap(&ev)
+				// remap all other events
+				remappedEvent, ok := keymap.Remap(&event, deviceConfig)
 				if ok {
 					err := output.Send(remappedEvent)
 					if err != nil {
 						panic(err)
 					}
 					if shouldLog {
-						log.Debug("\tValue out = %5d", remappedEvent.Value)
+						codeVal = fmt.Sprintf("[%s (%d)]", remappedEvent.CodeName(), remappedEvent.Code)
+						log.Debug("%-6d %-30s", remappedEvent.Value, codeVal)
 					}
+				} else if shouldLog {
+					log.Debug("!")
 				}
 			}
 
 			if shouldLog {
 				log.Debug("\n")
-				axisLogTimes[ev.Device.PersistentID()][ev.Code] = time.Now()
+				axisLogTimes[event.Device.PersistentID()][event.Code] = time.Now()
 			}
 		}
 	}
 
 	// close devices on loop termination
-	for _, device := range inputs {
-		_ = device.Close()
+	for _, dev := range inputs {
+		_ = dev.Close()
 	}
 	_ = output.Close()
 }
 
 func printDeviceInfo(device *device.Device) {
-	log.Info("Input device %s (ID, %s, Path %s)\n", device.Name(), device.PersistentID(), device.Raw().Path())
+	log.Info("AxisParams device %s (ID, %s, Path %s)\n", device.Name(), device.PersistentID(), device.Raw().Path())
 
 	inputID, err := device.Raw().InputID()
 	if err != nil {
