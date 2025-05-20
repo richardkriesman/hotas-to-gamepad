@@ -2,7 +2,7 @@ package mapping
 
 import (
 	"github.com/holoplot/go-evdev"
-	"hotas-to-gamepad/device"
+	"github.com/richardkriesman/hotas-to-gamepad/device"
 )
 
 type Table map[device.PersistentID]map[evdev.EvType]map[evdev.EvCode]TableRecord

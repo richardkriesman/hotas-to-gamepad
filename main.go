@@ -4,8 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/holoplot/go-evdev"
-	"hotas-to-gamepad/device"
-	"hotas-to-gamepad/mapping"
+	"github.com/richardkriesman/hotas-to-gamepad/device"
+	"github.com/richardkriesman/hotas-to-gamepad/mapping"
 	"os"
 	"os/signal"
 	"slices"
@@ -256,7 +256,7 @@ func main() {
 		// handle normal input events
 		case event := <-events:
 			shouldLog :=
-				// if EV_ABS, has enough time passed since the last event?
+			// if EV_ABS, has enough time passed since the last event?
 				(event.Type != evdev.EV_ABS || time.Now().Sub(axisLogTimes[event.Device.PersistentID()][event.Code]).Milliseconds() >= 200) &&
 					// show sync events if the flag is set
 					(event.Type != evdev.EV_SYN || *isDebugShowSyncEvents)
