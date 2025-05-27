@@ -1,2 +1,4 @@
+github.com/goccy/go-yaml v1.17.1 h1:LI34wktB2xEE3ONG/2Ar54+/HJVBriAGJ55PHls4YuY=
+github.com/goccy/go-yaml v1.17.1/go.mod h1:XBurs7gK8ATbW4ZPGKgcbrY1Br56PdM69F7LkFRi1kA=
 github.com/richardkriesman/go-evdev v0.0.0-20250520015225-3c66e5e161ee h1:MJ35IqwnvWKIOFRf+cHvfmU8yHWF5yvEuwuNbkDLc7A=
 github.com/richardkriesman/go-evdev v0.0.0-20250520015225-3c66e5e161ee/go.mod h1:iHAf8OIncO2gcQ8XOjS7CMJ2aPbX2Bs0wl5pZyanEqk=

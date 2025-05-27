@@ -16,16 +16,16 @@ type Config struct {
 
 type Channels struct {
 	Errors chan error
-	Events chan InputEvent
+	Events chan Event
 }
 
 type Frame struct {
-	Events []*InputEvent
+	Events []*Event
 }
 
-type InputEvent struct {
+type Event struct {
 	evdev.InputEvent
-	Device   *Device
+	Device   *InputDevice
 	Frame    *Frame
 	Sequence uint
 }

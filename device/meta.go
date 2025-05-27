@@ -32,6 +32,6 @@ func List() ([]Meta, error) {
 	return list, nil
 }
 
-func (d *Meta) Open() (*Device, error) {
+func (d *Meta) Open() (*InputDevice, error) {
 	return Open(d.Path)
 }

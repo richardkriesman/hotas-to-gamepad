@@ -12,7 +12,7 @@ type PersistentID string
 func createPersistentID(device *evdev.InputDevice) PersistentID {
 	var identifiers []byte
 
-	// add input ID info to the pool
+	// add inDev ID info to the pool
 	inputID, err := device.InputID()
 	if err == nil {
 		for _, value := range []uint16{inputID.BusType, inputID.Vendor, inputID.Product, inputID.Version} {
